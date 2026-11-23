@@ -40,15 +40,13 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  function applyTheme(theme, showNotification = true) {
+  function applyTheme(theme) {
     if (theme === 'light') {
       document.documentElement.setAttribute('data-theme', 'light');
       localStorage.setItem('theme', 'light');
-      if (showNotification) showToast('حالت روز فعال شد ☀️', 'info');
     } else {
       document.documentElement.setAttribute('data-theme', 'dark');
       localStorage.setItem('theme', 'dark');
-      if (showNotification) showToast('حالت شب فعال شد 🌙', 'info');
     }
   }
 
@@ -352,13 +350,19 @@ document.addEventListener('DOMContentLoaded', () => {
   // 11. Interactive 3D Tilt Effect on Auth Card
   // -------------------------------------------------------------------------
   function init3DTilt(element) {
-    if (!element || window.innerWidth < 768) return;
+    if (!element) return;
 
     element.addEventListener('mousemove', (e) => {
       const rect = element.getBoundingClientRect();
       const x = e.clientX - rect.left;
       const y = e.clientY - rect.top;
       
+      // Dynamic CSS variables for cursor spotlight reflection
+      element.style.setProperty('--mouse-x', `${x}px`);
+      element.style.setProperty('--mouse-y', `${y}px`);
+
+      if (window.innerWidth < 768) return;
+
       const centerX = rect.width / 2;
       const centerY = rect.height / 2;
       
@@ -374,7 +378,7 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   // -------------------------------------------------------------------------
-  // 12. Floating Background Particle Canvas
+  // 12. Floating Background Particle Canvas with Cursor Magnetism
   // -------------------------------------------------------------------------
   function initParticleCanvas() {
     const canvas = document.getElementById('particlesCanvas');
@@ -384,55 +388,90 @@ document.addEventListener('DOMContentLoaded', () => {
     let width = canvas.width = window.innerWidth;
     let height = canvas.height = window.innerHeight;
 
+    const mouse = { x: null, y: null, radius: 130 };
+
     window.addEventListener('resize', () => {
       width = canvas.width = window.innerWidth;
       height = canvas.height = window.innerHeight;
     });
 
+    window.addEventListener('mousemove', (e) => {
+      mouse.x = e.clientX;
+      mouse.y = e.clientY;
+    });
+
+    window.addEventListener('mouseleave', () => {
+      mouse.x = null;
+      mouse.y = null;
+    });
+
     const particles = [];
-    const count = 45;
+    const count = 55;
 
     for (let i = 0; i < count; i++) {
       particles.push({
         x: Math.random() * width,
         y: Math.random() * height,
-        radius: Math.random() * 2 + 1,
-        vx: (Math.random() - 0.5) * 0.6,
-        vy: (Math.random() - 0.5) * 0.6,
-        alpha: Math.random() * 0.5 + 0.2
+        baseX: 0,
+        baseY: 0,
+        radius: Math.random() * 2.2 + 1,
+        vx: (Math.random() - 0.5) * 0.7,
+        vy: (Math.random() - 0.5) * 0.7,
+        alpha: Math.random() * 0.5 + 0.25,
+        colorIndex: Math.floor(Math.random() * 3)
       });
     }
 
     function animate() {
       ctx.clearRect(0, 0, width, height);
+      const isLight = document.documentElement.getAttribute('data-theme') === 'light';
 
-      // Draw particles and faint connection lines
+      const lightColors = ['#6366f1', '#ec4899', '#06b6d4'];
+      const darkColors = ['#a5b4fc', '#f472b6', '#38bdf8'];
+
+      // Draw particles and connection lines
       for (let i = 0; i < count; i++) {
         const p = particles[i];
         p.x += p.vx;
         p.y += p.vy;
+
+        // Gentle cursor push effect
+        if (mouse.x !== null && mouse.y !== null) {
+          const dx = p.x - mouse.x;
+          const dy = p.y - mouse.y;
+          const dist = Math.hypot(dx, dy);
+          if (dist < mouse.radius) {
+            const force = (mouse.radius - dist) / mouse.radius;
+            const angle = Math.atan2(dy, dx);
+            p.x += Math.cos(angle) * force * 3.5;
+            p.y += Math.sin(angle) * force * 3.5;
+          }
+        }
 
         if (p.x < 0) p.x = width;
         if (p.x > width) p.x = 0;
         if (p.y < 0) p.y = height;
         if (p.y > height) p.y = 0;
 
-        const isLight = document.documentElement.getAttribute('data-theme') === 'light';
+        const pColor = isLight ? lightColors[p.colorIndex] : darkColors[p.colorIndex];
+
         ctx.beginPath();
         ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
-        ctx.fillStyle = isLight ? `rgba(99, 102, 241, ${p.alpha * 0.8})` : `rgba(165, 180, 252, ${p.alpha})`;
+        ctx.fillStyle = pColor;
+        ctx.globalAlpha = isLight ? p.alpha * 0.85 : p.alpha;
         ctx.fill();
+        ctx.globalAlpha = 1;
 
         for (let j = i + 1; j < count; j++) {
           const p2 = particles[j];
           const dist = Math.hypot(p.x - p2.x, p.y - p2.y);
-          if (dist < 110) {
+          if (dist < 115) {
             ctx.beginPath();
             ctx.moveTo(p.x, p.y);
             ctx.lineTo(p2.x, p2.y);
             ctx.strokeStyle = isLight 
-              ? `rgba(99, 102, 241, ${0.22 * (1 - dist / 110)})` 
-              : `rgba(99, 102, 241, ${0.15 * (1 - dist / 110)})`;
+              ? `rgba(99, 102, 241, ${0.25 * (1 - dist / 115)})` 
+              : `rgba(99, 102, 241, ${0.18 * (1 - dist / 115)})`;
             ctx.stroke();
           }
         }
