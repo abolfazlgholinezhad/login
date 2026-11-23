@@ -27,6 +27,31 @@ document.addEventListener('DOMContentLoaded', () => {
   const strengthBar = document.getElementById('strengthBar');
   const strengthText = document.getElementById('strengthText');
 
+  // Theme Toggle Elements
+  const themeToggleBtn = document.getElementById('themeToggleBtn');
+  const savedTheme = localStorage.getItem('theme') || 'dark';
+  applyTheme(savedTheme, false);
+
+  if (themeToggleBtn) {
+    themeToggleBtn.addEventListener('click', () => {
+      const currentTheme = document.documentElement.getAttribute('data-theme') || 'dark';
+      const nextTheme = currentTheme === 'dark' ? 'light' : 'dark';
+      applyTheme(nextTheme, true);
+    });
+  }
+
+  function applyTheme(theme, showNotification = true) {
+    if (theme === 'light') {
+      document.documentElement.setAttribute('data-theme', 'light');
+      localStorage.setItem('theme', 'light');
+      if (showNotification) showToast('حالت روز فعال شد ☀️', 'info');
+    } else {
+      document.documentElement.setAttribute('data-theme', 'dark');
+      localStorage.setItem('theme', 'dark');
+      if (showNotification) showToast('حالت شب فعال شد 🌙', 'info');
+    }
+  }
+
   // Initialize Particle Canvas Background
   initParticleCanvas();
 
@@ -392,9 +417,10 @@ document.addEventListener('DOMContentLoaded', () => {
         if (p.y < 0) p.y = height;
         if (p.y > height) p.y = 0;
 
+        const isLight = document.documentElement.getAttribute('data-theme') === 'light';
         ctx.beginPath();
         ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
-        ctx.fillStyle = `rgba(165, 180, 252, ${p.alpha})`;
+        ctx.fillStyle = isLight ? `rgba(99, 102, 241, ${p.alpha * 0.8})` : `rgba(165, 180, 252, ${p.alpha})`;
         ctx.fill();
 
         for (let j = i + 1; j < count; j++) {
@@ -404,7 +430,9 @@ document.addEventListener('DOMContentLoaded', () => {
             ctx.beginPath();
             ctx.moveTo(p.x, p.y);
             ctx.lineTo(p2.x, p2.y);
-            ctx.strokeStyle = `rgba(99, 102, 241, ${0.15 * (1 - dist / 110)})`;
+            ctx.strokeStyle = isLight 
+              ? `rgba(99, 102, 241, ${0.22 * (1 - dist / 110)})` 
+              : `rgba(99, 102, 241, ${0.15 * (1 - dist / 110)})`;
             ctx.stroke();
           }
         }
